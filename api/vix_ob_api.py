@@ -1,25 +1,31 @@
 from flask import Flask, request, jsonify
 import os
 
+# ✅ Import actual strategy logic from core/
+from core.ob_detector import detect_order_block
+
 app = Flask(__name__)
 
 @app.route('/signal', methods=['POST'])
 def get_signal():
-    data = request.json
+    try:
+        data = request.json
 
-    # Placeholder: you must import these from your core/ directory
-    ob_signal = detect_order_block(data['ohlcv'])
-    if not ob_signal:
-        return jsonify({"signal": "none"})
+        if 'ohlcv' not in data:
+            return jsonify({"error": "Missing 'ohlcv' key in JSON"}), 400
 
-    features = extract_features(ob_signal)
-    if confirm_signal(features):
+        ob_signal = detect_order_block(data['ohlcv'])
+        if not ob_signal:
+            return jsonify({"signal": "none"})
+
         return jsonify({
             "signal": ob_signal['type'],
             "confidence": ob_signal['score']
         })
 
-    return jsonify({"signal": "filtered"})
+    except Exception as e:
+        print("❌ Error:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 # ✅ Render-compatible runner
 if __name__ == "__main__":
